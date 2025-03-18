@@ -11,6 +11,7 @@ load_dotenv()
 
 app = Flask(__name__)
 
+
 CORS(app, resources={
     r"/process": {
         "origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app","http://localhost:3000"],
@@ -23,6 +24,10 @@ CORS(app, resources={
 @app.route('/')
 def health_check():
     return jsonify({"status": "active"}), 200
+
+@app.route('/process', methods=['GET'])
+def handle_get():
+    return jsonify({"error": "Use POST method"}), 405
 
 @app.route('/process', methods=['POST'])
 def process_request():
