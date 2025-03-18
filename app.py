@@ -10,16 +10,25 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-
+#CORS(app, resources={r"/process": {"origins": os.getenv('ALLOWED_ORIGINS', '*')}})
+# Production CORS
+#CORS(app, resources={r"/process": {"origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app/", "http://localhost:3000"]}})
 
 CORS(app, resources={
     r"/process": {
-        "origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app","http://localhost:3000"],
+        "origins": [
+            "https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app",
+            "http://localhost:3000"
+            ],
         "methods": ["POST","OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "supports_credentials": True
+        "allow_headers": ["Content-Type"]
     }
 })
+
+@app.before_request
+def log_request_info():
+    app.logger.debug('Headers: %s', request.headers)
+    app.logger.debug('Body: %s', request.get_data())
 
 @app.route('/')
 def health_check():
@@ -27,14 +36,7 @@ def health_check():
 
 @app.route('/process', methods=['GET'])
 def handle_get():
-    return jsonify({
-        "error": "POST method required",
-        "example_request": {
-            "method": "POST",
-            "headers": {"Content-Type": "application/json"},
-            "body": {"prompt": "Your message here"}
-        }
-    }), 405
+    return jsonify({"error": "Use POST method"}), 405
 
 @app.route('/process', methods=['POST'])
 def process_request():
