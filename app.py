@@ -27,7 +27,14 @@ def health_check():
 
 @app.route('/process', methods=['GET'])
 def handle_get():
-    return jsonify({"error": "Use POST method"}), 405
+    return jsonify({
+        "error": "POST method required",
+        "example_request": {
+            "method": "POST",
+            "headers": {"Content-Type": "application/json"},
+            "body": {"prompt": "Your message here"}
+        }
+    }), 405
 
 @app.route('/process', methods=['POST'])
 def process_request():
