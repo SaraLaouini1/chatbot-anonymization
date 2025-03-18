@@ -34,9 +34,9 @@ def anonymize_text(text):
     )
 
     operators = {
-    f"{entity.entity_type}_{index}": OperatorConfig(
+    entity.entity_type: OperatorConfig(
         "replace",
-        {"new_value": f"<{entity.entity_type}_{index}>"}
+        {"new_value": f"[{entity.entity_type}_{index}]"}  # Use square brackets
     )
     for index, entity in enumerate(analysis)
 }
