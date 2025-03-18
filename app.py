@@ -10,20 +10,19 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-#CORS(app, resources={r"/process": {"origins": os.getenv('ALLOWED_ORIGINS', '*')}})
-# Production CORS
-#CORS(app, resources={r"/process": {"origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app/", "http://localhost:3000"]}})
 
 CORS(app, resources={
     r"/process": {
-        "origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app/", "http://localhost:3000"],
-        "methods": ["POST"],
+        "origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app","http://localhost:3000"],
+        "methods": ["POST","OPTIONS"],
         "allow_headers": ["Content-Type"],
         "supports_credentials": True
     }
 })
-# ... rest of your existing backend code ...  
 
+@app.route('/')
+def health_check():
+    return jsonify({"status": "active"}), 200
 
 @app.route('/process', methods=['POST'])
 def process_request():
@@ -74,7 +73,9 @@ def process_request():
             )
 
         #llm_response = re.sub(r'\[([A-Z_]+)_\d+\]', '', llm_response)
-        llm_response = re.sub(r'<\w+_\d+>', '', llm_response)
+        #llm_response = re.sub(r'<\w+_\d+>', '', llm_response)
+        # Change the final cleanup regex
+        llm_response = re.sub(r'\[\w+_\d+\]', '', llm_response)
 
 
         print("Final Response:", llm_response)
