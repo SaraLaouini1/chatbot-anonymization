@@ -15,7 +15,7 @@ CORS(app, resources={
     r"/process": {
         "origins": [
             "https://chatbot-frontend-dxck.onrender.com",
-            "http://localhost:3000"
+            "http://localhost:5173"
             ],
         "methods": ["POST","OPTIONS"],
         "allow_headers": ["Content-Type"]
