@@ -10,14 +10,11 @@ import os
 load_dotenv()
 
 app = Flask(__name__)
-#CORS(app, resources={r"/process": {"origins": os.getenv('ALLOWED_ORIGINS', '*')}})
-# Production CORS
-#CORS(app, resources={r"/process": {"origins": ["https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app/", "http://localhost:3000"]}})
 
 CORS(app, resources={
     r"/process": {
         "origins": [
-            "https://secure-chat-frontend-navtuq7hp-saras-projects-123e3b12.vercel.app",
+            "https://chatbot-frontend-dxck.onrender.com",
             "http://localhost:3000"
             ],
         "methods": ["POST","OPTIONS"],
