@@ -10,8 +10,8 @@ def enhance_recognizers():
     # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
-        regex=r"(?i)(\d+)\s*(\$|€|£|USD|EUR|GBP)|\b(\d+)\s?(dollars|euros|pounds)\b",
-        score=0.9
+        regex=r"(?i)\b(\d+)(\s*)(\$|€|£|USD|EUR|GBP)\b|\b(\d+)\s?(dollars|euros|pounds)\b",
+        score=0.95
     )
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
