@@ -6,6 +6,7 @@ import json
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import re
 
 load_dotenv()
 
@@ -16,8 +17,8 @@ CORS(app, resources={
         "origins": [
             "https://chatbot-frontend-dxck.onrender.com",
             "http://localhost:5173"
-            ],
-        "methods": ["POST","OPTIONS"],
+        ],
+        "methods": ["POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
     }
 })
@@ -40,69 +41,45 @@ def process_request():
     try:
         data = request.json
         original_prompt = data.get("prompt", "")
-        
-        # Anonymization
+
+        # 🔹 Step 1: Anonymization
         anonymized_prompt, mapping = anonymize_text(original_prompt)
-        
-        print("anonymized_prompt : ")
-        print(anonymized_prompt)
 
-        # Add mapping IDs to prompt
-        #formatted_prompt = f"{anonymized_prompt}\n\nMapping: {json.dumps(mapping)}"
-        
-        # LLM Interaction
-        #llm_response = send_to_llm(anonymized_prompt)
+        # ✅ Better debug prints for the anonymized prompt and mapping
+        print("\n📌 **Anonymized Prompt:**\n", anonymized_prompt)
+        print("\n📌 **Mapping:**\n", json.dumps(mapping, indent=2))
 
-        # Extract placeholders from mapping
+        # 🔹 Step 2: Send to LLM
         mapped_placeholders = [item["anonymized"] for item in mapping]
-        
-        # Pass to LLM client
         llm_response = send_to_llm(
             anonymized_prompt,
-            placeholders=mapped_placeholders  # Add this parameter
+            placeholders=mapped_placeholders  # Pass placeholders for proper response handling
         )
 
+        # ✅ Debug print before recontextualization
+        print("\n📌 **LLM Response Before Cleaning:**\n", llm_response)
 
-        print("Mapping:", json.dumps(mapping, indent=2))
-        print("LLM Response Before Cleaning:", llm_response)
-
-
-       
-        
-        # Recontextualization with exact matches
-        import re
-
-        # Modify the recontextualization section
+        # 🔹 Step 3: Recontextualization - Replace anonymized placeholders with original values
         for item in mapping:
-            # Match exact placeholder including special characters
-            pattern = re.escape(item["anonymized"])
-            # Use lookaheads/lookbehinds to match whole words only
-            llm_response = re.sub(
-                rf'{pattern}',  # Negative lookbehind/ahead for word chars
-                item["original"], 
-                llm_response
-            )
+            placeholder = re.escape(item["anonymized"])
+            llm_response = re.sub(rf'{placeholder}', item["original"], llm_response)
 
-        #llm_response = re.sub(r'\[([A-Z_]+)_\d+\]', '', llm_response)
+        # ✅ Final cleanup of unnecessary placeholders
         llm_response = re.sub(r'<\w+_\d+>', '', llm_response)
-        # Change the final cleanup regex
-        #llm_response = re.sub(r'\[\w+_\d+\]', '', llm_response)
 
+        # ✅ Final debug print of cleaned response
+        print("\n📌 **Final Response (After Cleaning):**\n", llm_response)
 
-        print("Final Response:", llm_response)
-
-
-
+        # 🔹 Step 4: Return response
         return jsonify({
             "response": llm_response,
             "anonymized_prompt": anonymized_prompt,
             "mapping": mapping
         })
-    
+
     except Exception as e:
+        print("❌ Error:", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    #app.run(debug=True)
-
     app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
