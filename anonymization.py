@@ -1,13 +1,13 @@
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
+import re
 
 analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
-# Custom recognizers
 def enhance_recognizers():
-    # Money format with $ at end
+    # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
         regex=r"(?i)(\d+)\s*(\$|€|£|USD|EUR|GBP)|\b(\d+)\s?(dollars|euros|pounds)\b",
@@ -18,46 +18,83 @@ def enhance_recognizers():
         patterns=[money_pattern],
         context=["amount", "payment", "price"]
     )
-
+    
+    
+    # VIN recognizer
+    vin_pattern = Pattern(
+        name="vin_pattern",
+        regex=r"\b[A-HJ-NPR-Z0-9]{17}\b",
+        score=0.9
+    )
+    vin_recognizer = PatternRecognizer(
+        supported_entity="VEHICLE_ID",
+        patterns=[vin_pattern],
+        context=["vin", "vehicle", "registration"]
+    )
+    
+    # Medical code recognizer
+    icd10_pattern = Pattern(
+        name="icd10_pattern",
+        regex=r"\b[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?\b",
+        score=0.85
+    )
+    icd10_recognizer = PatternRecognizer(
+        supported_entity="MEDICAL_CODE",
+        patterns=[icd10_pattern],
+        context=["diagnosis", "medical", "condition"]
+    )
+    
+    # Add recognizers one by one
     analyzer.registry.add_recognizer(money_recognizer)
+    analyzer.registry.add_recognizer(vin_recognizer)
+    analyzer.registry.add_recognizer(icd10_recognizer)
+
 
 def anonymize_text(text):
     enhance_recognizers()
     
-    entities = ["PERSON", "EMAIL_ADDRESS", "CREDIT_CARD", "DATE_TIME", "LOCATION", "PHONE_NUMBER", "NRP", "MONEY"]
-
+    # Extended entity list
+    entities = [
+        "PERSON", "EMAIL_ADDRESS", "CREDIT_CARD", "DATE_TIME",
+        "LOCATION", "PHONE_NUMBER", "NRP", "MONEY",
+        "VEHICLE_ID", "MEDICAL_CODE", "URL", "IP_ADDRESS"
+    ]
+    
     analysis = analyzer.analyze(
         text=text,
         entities=entities,
         language="en",
-        score_threshold=0.3
+        score_threshold=0.4  # Lower threshold for better recall
     )
-
-    operators = {
-    entity.entity_type: OperatorConfig(
-        "replace",
-        {"new_value": f"<{entity.entity_type}_{index}>"}  # Use square brackets
-    )
-    for index, entity in enumerate(analysis)
-}
-
-    print("Operators:", operators)
-    print("Analysis:", [(ent.entity_type, ent.start, ent.end, text[ent.start:ent.end]) for ent in analysis])
-
-
+    
+    # Create operators with sequential indexes per entity type
+    operators = {}
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }  # Separate counters per entity
+    for entity in analysis:
+        entity_type = entity.entity_type
+        counters[entity_type] = counters.get(entity_type, 0) + 1
+        operators[entity_type] = OperatorConfig(
+            "replace",
+            {"new_value": f"<{entity_type}_{counters[entity_type]}>"}
+        )
+    
+    
     anonymized = anonymizer.anonymize(
         text=text,
         analyzer_results=analysis,
         operators=operators
     )
-
-    mapping = [
-        {
-            "type": entity.entity_type,
+    
+    # Create mapping with original positions
+    mapping = []
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }
+    for entity in analysis:
+        entity_type = entity.entity_type
+        counters[entity_type] = counters.get(entity_type, 0) + 1
+        mapping.append({
+            "type": entity_type,
             "original": text[entity.start:entity.end],
-            "anonymized": f"<{entity.entity_type}_{index}>"
-        }
-        for index, entity in enumerate(analysis)
-    ]
-
+            "anonymized": f"<{entity_type}_{counters[entity_type]}>"
+        })
+    
     return anonymized.text, mapping
