@@ -10,8 +10,8 @@ def enhance_recognizers():
     # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
-        regex=r"(?i)(?:\$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)\s*?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*?(?:$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)|\b\d+\s?(?:dollars|euros|pounds|yen|rupees|won)\b",
-        score=0.85
+        regex=r"(?i)(\d+)\s*(\$|€|£|USD|EUR|GBP)|\b(\d+)\s?(dollars|euros|pounds)\b",
+        score=0.9
     )
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
@@ -81,7 +81,7 @@ def anonymize_text(text):
     
     # Create operators with sequential indexes per entity type
     operators = {}
-    counters = {}
+    counters = {"PERSON": 0, "MONEY": 0}  # Separate counters per entity
     for entity in analysis:
         entity_type = entity.entity_type
         counters[entity_type] = counters.get(entity_type, 0) + 1
@@ -104,7 +104,7 @@ def anonymize_text(text):
     
     # Create mapping with original positions
     mapping = []
-    counters = {}
+    counters = {"PERSON": 0, "MONEY": 0}
     for entity in analysis:
         entity_type = entity.entity_type
         counters[entity_type] = counters.get(entity_type, 0) + 1
