@@ -7,27 +7,22 @@ analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
 def enhance_recognizers():
-    # In anonymization.py's enhance_recognizers() function:
-
-    # In anonymization.py's enhance_recognizers():
-
-    # Multi-currency pattern without flags
+    # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
         regex=r"(?i)(?:\$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)\s*?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*?(?:$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)|\b\d+\s?(?:dollars|euros|pounds|yen|rupees|won)\b",
         score=0.85
     )
-    
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
         patterns=[money_pattern],
         context=["amount", "payment", "price"]
     )
-        
-    # Enhanced credit card (with hyphens support)
+    
+    # Credit card recognizer
     credit_card_pattern = Pattern(
         name="credit_card_pattern",
-        regex=r"\b(?:\d[ -]*?){13,19}\b",  # Matches 13-19 digits with spaces/hyphens
+        regex=r"\b(?:\d[ -]*?){13,19}\b",
         score=0.95
     )
     credit_card_recognizer = PatternRecognizer(
@@ -36,10 +31,10 @@ def enhance_recognizers():
         context=["card", "cc", "credit"]
     )
     
-    # Vehicle Identification Number (VIN)
+    # VIN recognizer
     vin_pattern = Pattern(
         name="vin_pattern",
-        regex=r"\b[A-HJ-NPR-Z0-9]{17}\b",  # Standard VIN format
+        regex=r"\b[A-HJ-NPR-Z0-9]{17}\b",
         score=0.9
     )
     vin_recognizer = PatternRecognizer(
@@ -48,10 +43,10 @@ def enhance_recognizers():
         context=["vin", "vehicle", "registration"]
     )
     
-    # Medical terms (ICD-10 codes)
+    # Medical code recognizer
     icd10_pattern = Pattern(
         name="icd10_pattern",
-        regex=r"\b[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?\b",  # ICD-10 code format
+        regex=r"\b[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?\b",
         score=0.85
     )
     icd10_recognizer = PatternRecognizer(
@@ -60,13 +55,12 @@ def enhance_recognizers():
         context=["diagnosis", "medical", "condition"]
     )
     
-    # Add all recognizers
-    analyzer.registry.add_recognizers([
-        money_recognizer,
-        credit_card_recognizer,
-        vin_recognizer,
-        icd10_recognizer
-    ])
+    # Add recognizers one by one
+    analyzer.registry.add_recognizer(money_recognizer)
+    analyzer.registry.add_recognizer(credit_card_recognizer)
+    analyzer.registry.add_recognizer(vin_recognizer)
+    analyzer.registry.add_recognizer(icd10_recognizer)
+
 
 def anonymize_text(text):
     enhance_recognizers()
