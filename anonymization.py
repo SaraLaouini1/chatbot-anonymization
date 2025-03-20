@@ -9,28 +9,19 @@ anonymizer = AnonymizerEngine()
 def enhance_recognizers():
     # In anonymization.py's enhance_recognizers() function:
 
-    # Updated money recognizer with multiple currencies
+    # In anonymization.py's enhance_recognizers():
+
+    # Multi-currency pattern without flags
     money_pattern = Pattern(
         name="money_pattern",
-        regex=r"""
-        (?:\$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)  # Currency symbols and codes
-        \s*?  # Optional whitespace
-        \d{1,3}(?:,\d{3})*(?:\.\d{2})?  # Standard number format
-        |
-        \d{1,3}(?:,\d{3})*(?:\.\d{2})?  # Number first
-        \s*?  # Optional whitespace
-        (?:\$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)  # Currency symbols
-        |
-        \b\d+\s?(?:dollars|euros|pounds|yen|rupees|won)\b  # Word-based currencies
-        """,
-        score=0.85,
-        flags=re.VERBOSE | re.IGNORECASE
+        regex=r"(?i)(?:\$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)\s*?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*?(?:$|€|£|¥|₹|₩|USD|EUR|GBP|JPY|CAD|AUD)|\b\d+\s?(?:dollars|euros|pounds|yen|rupees|won)\b",
+        score=0.85
     )
     
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
         patterns=[money_pattern],
-        context=["invoice", "amount", "payment", "price", "cost", "fee", "currency"]
+        context=["amount", "payment", "price"]
     )
         
     # Enhanced credit card (with hyphens support)
