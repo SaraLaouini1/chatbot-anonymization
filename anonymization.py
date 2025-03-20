@@ -19,17 +19,6 @@ def enhance_recognizers():
         context=["amount", "payment", "price"]
     )
     
-    # Credit card recognizer
-    credit_card_pattern = Pattern(
-        name="credit_card_pattern",
-        regex=r"\b(?:\d[ -]*?){13,19}\b",
-        score=0.95
-    )
-    credit_card_recognizer = PatternRecognizer(
-        supported_entity="CREDIT_CARD",
-        patterns=[credit_card_pattern],
-        context=["card", "cc", "credit"]
-    )
     
     # VIN recognizer
     vin_pattern = Pattern(
@@ -57,7 +46,6 @@ def enhance_recognizers():
     
     # Add recognizers one by one
     analyzer.registry.add_recognizer(money_recognizer)
-    analyzer.registry.add_recognizer(credit_card_recognizer)
     analyzer.registry.add_recognizer(vin_recognizer)
     analyzer.registry.add_recognizer(icd10_recognizer)
 
@@ -79,39 +67,37 @@ def anonymize_text(text):
         score_threshold=0.4  # Lower threshold for better recall
     )
     
-    # Create operators with sequential indexes per entity type
+    # Sort entities by start index (reverse order)
+    analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
+
+    # Generate operators with proper indexing
+    entity_counters = defaultdict(int)
     operators = {}
-    counters = {"PERSON": 0, "MONEY": 0}  # Separate counters per entity
     for entity in analysis:
         entity_type = entity.entity_type
-        counters[entity_type] = counters.get(entity_type, 0) + 1
+        entity_counters[entity_type] += 1
         operators[entity_type] = OperatorConfig(
             "replace",
-            {"new_value": f"<{entity_type}_{counters[entity_type]}>"}
+            {"new_value": f"<{entity_type}_{entity_counters[entity_type]}>"}
         )
-    
-    # Context neutralization
-    neutralized_text = re.sub(r'\b(credit\s*card|social\s*security|ssn|vin)\b', 
-                            lambda m: "[REDACTED_TERM]", 
-                            text, 
-                            flags=re.IGNORECASE)
-    
+
+    # Anonymize with sorted analysis
     anonymized = anonymizer.anonymize(
-        text=neutralized_text,
+        text=text,
         analyzer_results=analysis,
         operators=operators
     )
-    
-    # Create mapping with original positions
+
+    # Create mapping with correct order
     mapping = []
-    counters = {"PERSON": 0, "MONEY": 0}
-    for entity in analysis:
+    entity_counters = defaultdict(int)
+    for entity in sorted(analysis, key=lambda x: x.start):
         entity_type = entity.entity_type
-        counters[entity_type] = counters.get(entity_type, 0) + 1
+        entity_counters[entity_type] += 1
         mapping.append({
             "type": entity_type,
             "original": text[entity.start:entity.end],
-            "anonymized": f"<{entity_type}_{counters[entity_type]}>"
+            "anonymized": f"<{entity_type}_{entity_counters[entity_type]}>"
         })
-    
+
     return anonymized.text, mapping
