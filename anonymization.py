@@ -7,10 +7,25 @@ analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
 def enhance_recognizers():
+     # Remove default PERSON recognizer
+    #analyzer.registry.remove_recognizer("PERSON")
+    
+    # Improved PERSON recognizer (names only)
+    person_pattern = Pattern(
+        name="person_pattern",
+        regex=r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b",  # Matches "Sarah Connor" but not "Sarah 1523$"
+        score=0.9
+    )
+    person_recognizer = PatternRecognizer(
+        supported_entity="PERSON",
+        patterns=[person_pattern],
+        context=["user", "contact", "client"]
+    )
+    
     # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
-        regex=r"(?i)\b(\d+)(\s*)(\$|€|£|USD|EUR|GBP)\b|\b(\d+)\s?(dollars|euros|pounds)\b",
+        regex=r"(?i)(\b\d{1,3}(?:,\d{3})*(?:\.\d{2})?\s*(\$|€|£|USD|EUR|GBP)\b)|(\b\d+\s?(?:dollars|euros|pounds|euro|eur)\b)",
         score=0.95
     )
     money_recognizer = PatternRecognizer(
@@ -48,6 +63,8 @@ def enhance_recognizers():
     analyzer.registry.add_recognizer(money_recognizer)
     analyzer.registry.add_recognizer(vin_recognizer)
     analyzer.registry.add_recognizer(icd10_recognizer)
+    analyzer.registry.add_recognizer(person_recognizer)
+
 
 
 def anonymize_text(text):
