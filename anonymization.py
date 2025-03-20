@@ -1,7 +1,6 @@
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
-from collections import defaultdict
 import re
 
 analyzer = AnalyzerEngine()
@@ -17,8 +16,9 @@ def enhance_recognizers():
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
         patterns=[money_pattern],
-        context=["amount", "payment"]
+        context=["amount", "payment", "price"]
     )
+    
     
     # VIN recognizer
     vin_pattern = Pattern(
@@ -44,41 +44,40 @@ def enhance_recognizers():
         context=["diagnosis", "medical", "condition"]
     )
     
+    # Add recognizers one by one
     analyzer.registry.add_recognizer(money_recognizer)
     analyzer.registry.add_recognizer(vin_recognizer)
     analyzer.registry.add_recognizer(icd10_recognizer)
 
+
 def anonymize_text(text):
     enhance_recognizers()
     
-    # Entity list excluding PERSON
+    # Extended entity list
     entities = [
-        "EMAIL_ADDRESS","PERSON", "CREDIT_CARD", "DATE_TIME",
+        "PERSON", "EMAIL_ADDRESS", "CREDIT_CARD", "DATE_TIME",
         "LOCATION", "PHONE_NUMBER", "NRP", "MONEY",
         "VEHICLE_ID", "MEDICAL_CODE", "URL", "IP_ADDRESS"
     ]
     
-    # Analysis with filtered entities
     analysis = analyzer.analyze(
         text=text,
         entities=entities,
         language="en",
-        score_threshold=0.4
+        score_threshold=0.4  # Lower threshold for better recall
     )
     
-    # Process right-to-left to prevent overlaps
-    analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
-    
-    # Create operators and mapping
+    # Create operators with sequential indexes per entity type
     operators = {}
-    counters = defaultdict(int)
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }  # Separate counters per entity
     for entity in analysis:
         entity_type = entity.entity_type
-        counters[entity_type] += 1
+        counters[entity_type] = counters.get(entity_type, 0) + 1
         operators[entity_type] = OperatorConfig(
             "replace",
             {"new_value": f"<{entity_type}_{counters[entity_type]}>"}
         )
+    
     
     anonymized = anonymizer.anonymize(
         text=text,
@@ -86,12 +85,12 @@ def anonymize_text(text):
         operators=operators
     )
     
-    # Generate final mapping
+    # Create mapping with original positions
     mapping = []
-    counters = defaultdict(int)
-    for entity in sorted(analysis, key=lambda x: x.start):
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }
+    for entity in analysis:
         entity_type = entity.entity_type
-        counters[entity_type] += 1
+        counters[entity_type] = counters.get(entity_type, 0) + 1
         mapping.append({
             "type": entity_type,
             "original": text[entity.start:entity.end],
