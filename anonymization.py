@@ -1,7 +1,6 @@
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
-from collections import defaultdict  
 import re
 
 analyzer = AnalyzerEngine()
@@ -68,37 +67,34 @@ def anonymize_text(text):
         score_threshold=0.4  # Lower threshold for better recall
     )
     
-    # Sort entities by start index (reverse order)
-    analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
-
-    # Generate operators with proper indexing
-    entity_counters = defaultdict(int)
+    # Create operators with sequential indexes per entity type
     operators = {}
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }  # Separate counters per entity
     for entity in analysis:
         entity_type = entity.entity_type
-        entity_counters[entity_type] += 1
+        counters[entity_type] = counters.get(entity_type, 0) + 1
         operators[entity_type] = OperatorConfig(
             "replace",
-            {"new_value": f"<{entity_type}_{entity_counters[entity_type]}>"}
+            {"new_value": f"<{entity_type}_{counters[entity_type]}>"}
         )
-
-    # Anonymize with sorted analysis
+    
+    
     anonymized = anonymizer.anonymize(
         text=text,
         analyzer_results=analysis,
         operators=operators
     )
-
-    # Create mapping with correct order
+    
+    # Create mapping with original positions
     mapping = []
-    entity_counters = defaultdict(int)
-    for entity in sorted(analysis, key=lambda x: x.start):
+    counters = {"PERSON": 0, "MONEY": 0, "EMAIL_ADDRESS": 0, "CREDIT_CARD": 0, "DATE_TIME":0, "LOCATION": 0, "NRP": 0, "VEHICLE_ID": 0, "MEDICAL_CODE": 0, "URL":0, "IP_ADDRESS": 0, "PHONE_NUMBER": 0 }
+    for entity in analysis:
         entity_type = entity.entity_type
-        entity_counters[entity_type] += 1
+        counters[entity_type] = counters.get(entity_type, 0) + 1
         mapping.append({
             "type": entity_type,
             "original": text[entity.start:entity.end],
-            "anonymized": f"<{entity_type}_{entity_counters[entity_type]}>"
+            "anonymized": f"<{entity_type}_{counters[entity_type]}>"
         })
-
+    
     return anonymized.text, mapping
