@@ -1,24 +1,26 @@
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
+from collections import defaultdict
+import re
 
 analyzer = AnalyzerEngine()
 anonymizer = AnonymizerEngine()
 
 def enhance_recognizers():
-    """Enhance the recognizers by adding custom patterns for money, VIN, and medical codes."""
-    
+    # Money recognizer
     money_pattern = Pattern(
         name="money_pattern",
-        regex=r"(?i)(\d+)\s*(\$|€|£|USD|EUR|GBP)|\b(\d+)\s?(dollars|euros|pounds)\b",
-        score=0.9
+        regex=r"(?i)\b(\d{1,3}(?:,\d{3})*[$\u20AC£]|\d+\s?(?:USD|EUR|GBP|dollars|euros|pounds)\b)",
+        score=0.95
     )
     money_recognizer = PatternRecognizer(
         supported_entity="MONEY",
         patterns=[money_pattern],
-        context=["amount", "payment", "price"]
+        context=["amount", "payment"]
     )
     
+    # VIN recognizer
     vin_pattern = Pattern(
         name="vin_pattern",
         regex=r"\b[A-HJ-NPR-Z0-9]{17}\b",
@@ -30,6 +32,7 @@ def enhance_recognizers():
         context=["vin", "vehicle", "registration"]
     )
     
+    # Medical code recognizer
     icd10_pattern = Pattern(
         name="icd10_pattern",
         regex=r"\b[A-TV-Z][0-9][0-9A-Z](\.[0-9A-Z]{1,4})?\b",
@@ -46,16 +49,16 @@ def enhance_recognizers():
     analyzer.registry.add_recognizer(icd10_recognizer)
 
 def anonymize_text(text):
-    """Anonymizes detected entities in the text while ensuring unique mappings."""
-    
     enhance_recognizers()
     
+    # Entity list excluding PERSON
     entities = [
-        "PERSON", "EMAIL_ADDRESS", "CREDIT_CARD", "DATE_TIME",
+        "EMAIL_ADDRESS","PERSON", "CREDIT_CARD", "DATE_TIME",
         "LOCATION", "PHONE_NUMBER", "NRP", "MONEY",
         "VEHICLE_ID", "MEDICAL_CODE", "URL", "IP_ADDRESS"
     ]
     
+    # Analysis with filtered entities
     analysis = analyzer.analyze(
         text=text,
         entities=entities,
@@ -63,33 +66,36 @@ def anonymize_text(text):
         score_threshold=0.4
     )
     
-    unique_entities = {}
-    counters = {entity: 0 for entity in entities}
+    # Process right-to-left to prevent overlaps
+    analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
     
+    # Create operators and mapping
     operators = {}
-    
+    counters = defaultdict(int)
     for entity in analysis:
         entity_type = entity.entity_type
-        entity_text = text[entity.start:entity.end]
-
-        if entity_text not in unique_entities:
-            counters[entity_type] += 1
-            anonymized_value = f"<{entity_type}_{counters[entity_type]}>"
-            unique_entities[entity_text] = anonymized_value
-        else:
-            anonymized_value = unique_entities[entity_text]
-
-        operators[entity_type] = OperatorConfig("replace", {"new_value": anonymized_value})
-
+        counters[entity_type] += 1
+        operators[entity_type] = OperatorConfig(
+            "replace",
+            {"new_value": f"<{entity_type}_{counters[entity_type]}>"}
+        )
+    
     anonymized = anonymizer.anonymize(
         text=text,
         analyzer_results=analysis,
         operators=operators
     )
-
-    mapping = [
-        {"type": entity.entity_type, "original": text[entity.start:entity.end], "anonymized": unique_entities[text[entity.start:entity.end]]}
-        for entity in analysis
-    ]
-
+    
+    # Generate final mapping
+    mapping = []
+    counters = defaultdict(int)
+    for entity in sorted(analysis, key=lambda x: x.start):
+        entity_type = entity.entity_type
+        counters[entity_type] += 1
+        mapping.append({
+            "type": entity_type,
+            "original": text[entity.start:entity.end],
+            "anonymized": f"<{entity_type}_{counters[entity_type]}>"
+        })
+    
     return anonymized.text, mapping
