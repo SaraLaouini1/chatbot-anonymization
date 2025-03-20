@@ -21,6 +21,8 @@ def enhance_recognizers():
 
     analyzer.registry.add_recognizer(money_recognizer)
 
+from collections import defaultdict
+
 def anonymize_text(text):
     enhance_recognizers()
     
@@ -33,17 +35,37 @@ def anonymize_text(text):
         score_threshold=0.3
     )
 
-    operators = {
-    entity.entity_type: OperatorConfig(
-        "replace",
-        {"new_value": f"<{entity.entity_type}_{index}>"}  # Use square brackets
-    )
-    for index, entity in enumerate(analysis)
-}
+    # ✅ Track unique counters per entity type
+    entity_counters = defaultdict(int)
+    operators = {}
+    updated_analysis = []
 
+    for entity in analysis:
+        entity_type = entity.entity_type
+        entity_counters[entity_type] += 1
+
+        anonymized_label = f"<{entity_type}_{entity_counters[entity_type]}>"
+
+        # ✅ Avoid duplicate mapping for identical text & entity
+        existing_mapping = next(
+            (item for item in updated_analysis if item["original"] == text[entity.start:entity.end]), 
+            None
+        )
+
+        if not existing_mapping:
+            updated_analysis.append({
+                "type": entity_type,
+                "original": text[entity.start:entity.end],
+                "anonymized": anonymized_label
+            })
+
+        operators[entity] = OperatorConfig(
+            "replace", {"new_value": anonymized_label}
+        )
+
+    # ✅ Debugging
     print("Operators:", operators)
-    print("Analysis:", [(ent.entity_type, ent.start, ent.end, text[ent.start:ent.end]) for ent in analysis])
-
+    print("Updated Analysis:", updated_analysis)
 
     anonymized = anonymizer.anonymize(
         text=text,
@@ -51,13 +73,4 @@ def anonymize_text(text):
         operators=operators
     )
 
-    mapping = [
-        {
-            "type": entity.entity_type,
-            "original": text[entity.start:entity.end],
-            "anonymized": f"<{entity.entity_type}_{index}>"
-        }
-        for index, entity in enumerate(analysis)
-    ]
-
-    return anonymized.text, mapping
+    return anonymized.text, updated_analysis
