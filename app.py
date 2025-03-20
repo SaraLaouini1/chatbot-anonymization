@@ -84,9 +84,9 @@ def process_request():
             )
 
         #llm_response = re.sub(r'\[([A-Z_]+)_\d+\]', '', llm_response)
-        #llm_response = re.sub(r'<\w+_\d+>', '', llm_response)
+        llm_response = re.sub(r'<\w+_\d+>', '', llm_response)
         # Change the final cleanup regex
-        llm_response = re.sub(r'\[\w+_\d+\]', '', llm_response)
+        #llm_response = re.sub(r'\[\w+_\d+\]', '', llm_response)
 
 
         print("Final Response:", llm_response)
