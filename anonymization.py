@@ -66,14 +66,21 @@ def anonymize_text(text):
         score_threshold=0.4
     )
     
-    # Process right-to-left to prevent overlaps
+    # Process right-to-left with overlap filtering
     analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
+    filtered = []
+    seen_spans = set()
     
-    # Create operators and mapping
+    for ent in analysis:
+        if (ent.start, ent.end) not in seen_spans:
+            filtered.append(ent)
+            seen_spans.add((ent.start, ent.end))
+    
+    # Create operators
     operators = {}
     counters = defaultdict(int)
-    for entity in analysis:
-        entity_type = entity.entity_type
+    for ent in filtered:
+        entity_type = ent.entity_type
         counters[entity_type] += 1
         operators[entity_type] = OperatorConfig(
             "replace",
@@ -82,19 +89,19 @@ def anonymize_text(text):
     
     anonymized = anonymizer.anonymize(
         text=text,
-        analyzer_results=analysis,
+        analyzer_results=filtered,
         operators=operators
     )
     
-    # Generate final mapping
+    # Generate mapping
     mapping = []
     counters = defaultdict(int)
-    for entity in sorted(analysis, key=lambda x: x.start):
-        entity_type = entity.entity_type
+    for ent in sorted(filtered, key=lambda x: x.start):
+        entity_type = ent.entity_type
         counters[entity_type] += 1
         mapping.append({
             "type": entity_type,
-            "original": text[entity.start:entity.end],
+            "original": text[ent.start:ent.end],
             "anonymized": f"<{entity_type}_{counters[entity_type]}>"
         })
     
