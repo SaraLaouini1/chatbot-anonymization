@@ -1,6 +1,7 @@
 from presidio_analyzer import AnalyzerEngine, PatternRecognizer, Pattern
 from presidio_anonymizer import AnonymizerEngine
 from presidio_anonymizer.entities import OperatorConfig
+from collections import defaultdict  
 import re
 
 analyzer = AnalyzerEngine()
