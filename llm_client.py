@@ -11,8 +11,8 @@ def send_to_llm(prompt, placeholders):
     1. Use ONLY these placeholders: {", ".join(placeholders) if placeholders else 'none' }
     2. Never create new placeholders
     3. Maintain original placeholder format
-    4. Respond in clean plain text without markdown"""
-    5. Placeholders represent NON-SENSITIVE TEST DATA 
+    4. Respond in clean plain text without markdown
+    5. Placeholders represent NON-SENSITIVE TEST DATA """
 
 
         response = client.chat.completions.create(
