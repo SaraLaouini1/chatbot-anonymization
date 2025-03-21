@@ -5,7 +5,7 @@ from collections import defaultdict
 import re
 
 analyzer = AnalyzerEngine()
-anonymizer = AnonymizerEngine()
+#anonymizer = AnonymizerEngine()
 
 # Dictionary to standardize currency names
 CURRENCY_NORMALIZATION = {
@@ -60,7 +60,6 @@ def normalize_money_format(money_str):
 
 def anonymize_text(text):
     enhance_recognizers()
-    
     entities = ["PERSON", "EMAIL_ADDRESS", "CREDIT_CARD", "DATE_TIME", "LOCATION", "PHONE_NUMBER", "NRP", "MONEY"]
 
     analysis = analyzer.analyze(
@@ -70,43 +69,40 @@ def anonymize_text(text):
         score_threshold=0.3
     )
 
-    entity_counters = defaultdict(int)
-    operators = {}
+    # Sort entities by start index in reverse order to avoid offset issues
+    analysis = sorted(analysis, key=lambda x: x.start, reverse=True)
+
+    anonymized_text = text
     updated_analysis = []
-    existing_mappings = {}  # Store already processed entities
+    existing_mappings = {}  # Track (entity_text, entity_type) to avoid duplicates
+    global_counter = 1  # Unique numbering across all entities
 
     for entity in analysis:
         entity_text = text[entity.start:entity.end]
-        
-        # Normalize money values before assigning labels
+
+        # Normalize money values
         if entity.entity_type == "MONEY":
             entity_text = normalize_money_format(entity_text)
 
-        # Check if this exact entity already has an anonymized label
-        if entity_text in existing_mappings:
-            anonymized_label = existing_mappings[entity_text]
+        # Check if this entity has already been processed
+        key = (entity_text, entity.entity_type)
+        if key in existing_mappings:
+            anonymized_label = existing_mappings[key]
         else:
-            entity_counters[entity.entity_type] += 1
-            anonymized_label = f"<{entity.entity_type}_{entity_counters[entity.entity_type]}>"
-            existing_mappings[entity_text] = anonymized_label  # Store for future references
-
-            # Store mapping only once
+            anonymized_label = f"<{entity.entity_type}_{global_counter}>"
+            existing_mappings[key] = anonymized_label
             updated_analysis.append({
                 "type": entity.entity_type,
                 "original": entity_text,
                 "anonymized": anonymized_label
             })
+            global_counter += 1
 
-        operators[entity] = OperatorConfig("replace", {"new_value": anonymized_label})
+        # Replace the entity in the text
+        anonymized_text = (
+            anonymized_text[:entity.start] 
+            + anonymized_label 
+            + anonymized_text[entity.end:]
+        )
 
-    # ✅ Debugging
-    print("Operators:", operators)
-    print("Updated Analysis:", updated_analysis)
-
-    anonymized = anonymizer.anonymize(
-        text=text,
-        analyzer_results=analysis,
-        operators=operators
-    )
-
-    return anonymized.text, updated_analysis
+    return anonymized_text, updated_analysis
