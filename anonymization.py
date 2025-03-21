@@ -42,20 +42,7 @@ def enhance_recognizers():
         context=["card", "credit", "account"]
     )
 
-    # Password Recognizer
-    password_pattern = Pattern(
-        name="password_pattern",
-        # Regex to detect passwords after keywords like "password is" or standalone tokens
-        regex=r"(?i)(password|pwd|passcode)\s*(:|=|is)?\s*([a-zA-Z0-9!@#$%^&*()_+]{6,})|\b([a-zA-Z0-9!@#$%^&*()_+]{8,})\b",
-        score=0.9
-    )
-    password_recognizer = PatternRecognizer(
-        supported_entity="PASSWORD",
-        patterns=[password_pattern],
-        context=["password", "credentials", "login"]
-    )
-    
-    analyzer.registry.add_recognizer(password_recognizer)
+   
     analyzer.registry.add_recognizer(credit_card_recognizer)
     analyzer.registry.add_recognizer(money_recognizer)
 
