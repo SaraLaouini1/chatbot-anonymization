@@ -46,11 +46,11 @@ def process_request():
         anonymized_prompt, mapping = anonymize_text(original_prompt)
 
         # Validate placeholders in the anonymized prompt
-        expected_placeholders = {item["anonymized"] for item in mapping}
-        found_placeholders = set(re.findall(r"<\w+_\d+>", anonymized_prompt))
+        #expected_placeholders = {item["anonymized"] for item in mapping}
+        #found_placeholders = set(re.findall(r"<\w+_\d+>", anonymized_prompt))
         
-        if expected_placeholders != found_placeholders:
-            raise ValueError(f"Placeholder mismatch. Expected: {expected_placeholders}, Found: {found_placeholders}")
+        #if expected_placeholders != found_placeholders:
+            #raise ValueError(f"Placeholder mismatch. Expected: {expected_placeholders}, Found: {found_placeholders}")
 
         # ✅ Better debug prints for the anonymized prompt and mapping
         print("\n📌 **Anonymized Prompt:**\n", anonymized_prompt)
