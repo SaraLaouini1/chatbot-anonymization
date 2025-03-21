@@ -33,6 +33,20 @@ def enhance_recognizers():
         context=["invoice", "amount", "payment"]
     )
 
+    # Custom Credit Card Recognizer (without Luhn check)
+    credit_card_pattern = Pattern(
+        name="credit_card_pattern",
+        regex=r"\b\d{4}-\d{4}-\d{4}-\d{4}\b",
+        score=0.9  # High score to ensure detection
+    )
+    credit_card_recognizer = PatternRecognizer(
+        supported_entity="CREDIT_CARD",
+        patterns=[credit_card_pattern],
+        context=["card", "credit", "account"]
+    )
+    
+    analyzer.registry.add_recognizer(credit_card_recognizer)
+
     analyzer.registry.add_recognizer(money_recognizer)
 
 def normalize_money_format(money_str):
