@@ -17,6 +17,7 @@ CORS(app, resources={
     r"/process": {
         "origins": [
             "https://chatbot-frontend-dxck.onrender.com",
+            "https://www.private-prompt.com",
             "http://localhost:5173"
         ],
         "methods": ["POST", "OPTIONS"],
