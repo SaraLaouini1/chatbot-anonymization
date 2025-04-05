@@ -3,6 +3,8 @@
 from flask import Flask, request, jsonify
 from anonymization import anonymize_text
 from llm_client import send_to_llm
+from flask import Flask, request, jsonify, send_from_directory
+
 import json
 
 from flask_cors import CORS
@@ -12,7 +14,9 @@ import re
 
 load_dotenv()
 
-app = Flask(__name__)
+#app = Flask(__name__)
+app = Flask(__name__, static_folder='../dist', static_url_path='')  # Update this line
+
 
 CORS(app, resources={
     r"/process": {
@@ -25,6 +29,18 @@ CORS(app, resources={
         "allow_headers": ["Content-Type"]
     }
 })
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path.startswith('api/'):  # Skip API routes
+        return jsonify({"error": "Not found"}), 404
+        
+    static_file = os.path.join(app.static_folder, path)
+    if os.path.exists(static_file) and path != "":
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 @app.before_request
 def log_request_info():
