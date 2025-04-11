@@ -14,33 +14,22 @@ import re
 
 load_dotenv()
 
-#app = Flask(__name__)
-app = Flask(__name__, static_folder='../dist', static_url_path='')  # Update this line
+app = Flask(__name__)
 
 
 CORS(app, resources={
-    r"/process": {
+    r"/*": {
         "origins": [
             "https://chatbot-frontend-dxck.onrender.com",
             "https://www.private-prompt.com",
             "http://localhost:5173"
         ],
-        "methods": ["POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
     }
 })
 
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    if path.startswith('api/'):  # Skip API routes
-        return jsonify({"error": "Not found"}), 404
-        
-    static_file = os.path.join(app.static_folder, path)
-    if os.path.exists(static_file) and path != "":
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
 
 @app.before_request
 def log_request_info():
